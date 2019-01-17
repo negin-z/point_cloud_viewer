@@ -88,6 +88,8 @@ struct PointCloudRenderer {
     show_octree_nodes: bool,
     node_views: NodeViewContainer,
     box_drawer: BoxDrawer,
+    min_nodes_moving: usize,
+    nodes_moving: usize,
 }
 
 #[derive(Debug)]
@@ -138,6 +140,8 @@ impl PointCloudRenderer {
             get_visible_nodes_params_tx,
             get_visible_nodes_result_rx,
             max_nodes_moving: max_nodes_in_memory,
+            min_nodes_moving: 1,
+            nodes_moving: max_nodes_in_memory,
             needs_drawing: true,
             show_octree_nodes: false,
             max_nodes_in_memory,
@@ -199,7 +203,7 @@ impl PointCloudRenderer {
 
         // We use a heuristic to keep the frame rate as stable as possible by increasing/decreasing the number of nodes to draw.
         let max_nodes_to_display =
-           if moving { self.max_nodes_moving } else { self.max_nodes_in_memory };
+           if moving { self.nodes_moving } else { self.max_nodes_in_memory };
         let filtered_visible_nodes = self.visible_nodes.iter().take(max_nodes_to_display);
 
         for node_id in filtered_visible_nodes {
@@ -228,16 +232,23 @@ impl PointCloudRenderer {
 
         self.num_frames += 1;
         let now = time::PreciseTime::now();
-        if self.last_log.to(now) > time::Duration::seconds(1) {
+        if self.last_log.to(now) > time::Duration::milliseconds(500) {
             let duration = self.last_log.to(now).num_microseconds().unwrap();
             let fps = (self.num_frames * 1_000_000u32) as f32 / duration as f32;
             if moving {
                 if fps < 20. {
-                    self.max_nodes_moving = (self.max_nodes_moving as f32 * 0.9) as usize;
+                    self.max_nodes_moving = self.nodes_moving;
+
                 }
                 if fps > 25. && self.max_nodes_moving < self.max_nodes_in_memory {
-                    self.max_nodes_moving = (self.max_nodes_moving as f32 * 1.1) as usize;
+                    self.min_nodes_moving = self.nodes_moving;
+                    //self.max_nodes_moving = (self.max_nodes_moving as f32 * 1.1) as usize;
                 }
+                self.nodes_moving = (self.max_nodes_moving + self.min_nodes_moving)/2;
+
+            } else{
+                self.max_nodes_moving = self.max_nodes_in_memory;
+                self.min_nodes_moving = 1;
             }
             self.num_frames = 0;
             self.last_log = now;
@@ -406,6 +417,7 @@ impl SdlViewer {
         let mut camera = Camera::new(&gl, WINDOW_WIDTH, WINDOW_HEIGHT);
 
         let mut events = ctx.event_pump().unwrap();
+        let mut last_frame_time = time::PreciseTime::now();
         'outer_loop: loop {
 
             for event in events.poll_iter() {
@@ -519,8 +531,10 @@ impl SdlViewer {
                 camera.pan(x, y, z);
                 camera.rotate(up, around);
             }
-
-            if camera.update() {
+            let current_time = time::PreciseTime::now();
+            let elapsed = last_frame_time.to(current_time);
+            last_frame_time = current_time;
+            if camera.update(elapsed) {
                 renderer.camera_changed(&camera.get_world_to_gl());
             }
 

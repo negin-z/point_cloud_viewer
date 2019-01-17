@@ -16,6 +16,7 @@ use cgmath::{Decomposed, Deg, InnerSpace, Matrix4, One, PerspectiveFov, Quaterni
              Rotation3, Transform, Vector3, Zero};
 use opengl;
 use std::f32;
+use time;
 
 #[derive(Debug)]
 pub struct Camera {
@@ -55,7 +56,7 @@ pub struct State {
 impl Camera {
     pub fn new(gl: &opengl::Gl, width: i32, height: i32) -> Self {
         let mut camera = Camera {
-            movement_speed: 1.5,
+            movement_speed: 10.,
             moving_backward: false,
             moving_forward: false,
             moving_left: false,
@@ -124,10 +125,10 @@ impl Camera {
 
     /// Update the camera position for the current frame. Returns true if the camera moved in this
     /// step.
-    pub fn update(&mut self) -> bool {
+    pub fn update(&mut self, elapsed: time::Duration) -> bool {
         let mut moved = self.moved;
         self.moved = false;
-
+        
         // Handle keyboard input
         let mut pan = Vector3::zero();
         if self.moving_right {
@@ -152,18 +153,20 @@ impl Camera {
             self.pan += pan.normalize();
         }
 
-        const TURNING_SPEED : Rad<f32> = Rad(0.015);
+        let elapsed_seconds = elapsed.num_milliseconds() as f32 / 1000.;
+
+        const TURNING_SPEED : Rad<f32> = Rad(0.15);
         if self.turning_left {
-            self.delta_theta += TURNING_SPEED;
+            self.delta_theta += TURNING_SPEED * elapsed_seconds;
         }
         if self.turning_right {
-            self.delta_theta -= TURNING_SPEED;
+            self.delta_theta -= TURNING_SPEED * elapsed_seconds;
         }
         if self.turning_up {
-            self.delta_phi += TURNING_SPEED;
+            self.delta_phi += TURNING_SPEED * elapsed_seconds;
         }
         if self.turning_down {
-            self.delta_phi -= TURNING_SPEED;
+            self.delta_phi -= TURNING_SPEED * elapsed_seconds;
         }
 
         // Apply changes
@@ -171,7 +174,7 @@ impl Camera {
             moved = true;
             let translation = self.transform
                 .rot
-                .rotate_vector(self.pan * self.movement_speed);
+                .rotate_vector(self.pan * self.movement_speed * elapsed_seconds);
             self.transform.disp += translation;
         }
 
@@ -207,13 +210,13 @@ impl Camera {
     }
 
     pub fn pan(&mut self, x: f32, y: f32, z: f32) {
-        self.pan.x += x * self.movement_speed;
-        self.pan.y += y * self.movement_speed;
-        self.pan.z += z * self.movement_speed;
+        self.pan.x += x ;//* self.movement_speed;
+        self.pan.y += y ;//* self.movement_speed;
+        self.pan.z += z ;//* self.movement_speed;
     }
 
     pub fn rotate(&mut self, up: f32, around: f32) {
-        self.delta_phi += Rad(up * self.movement_speed);
-        self.delta_theta += Rad(around * self.movement_speed);
+        self.delta_phi += Rad(up /* * self.movement_speed*/);
+        self.delta_theta += Rad(around /* * self.movement_speed*/);
     }
 }

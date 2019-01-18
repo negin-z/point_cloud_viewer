@@ -157,16 +157,16 @@ impl Camera {
 
         const TURNING_SPEED : Rad<f32> = Rad(0.15);
         if self.turning_left {
-            self.delta_theta += TURNING_SPEED * elapsed_seconds;
+            self.delta_theta += TURNING_SPEED;// * elapsed_seconds;
         }
         if self.turning_right {
-            self.delta_theta -= TURNING_SPEED * elapsed_seconds;
+            self.delta_theta -= TURNING_SPEED;// * elapsed_seconds;
         }
         if self.turning_up {
-            self.delta_phi += TURNING_SPEED * elapsed_seconds;
+            self.delta_phi += TURNING_SPEED;// * elapsed_seconds;
         }
         if self.turning_down {
-            self.delta_phi -= TURNING_SPEED * elapsed_seconds;
+            self.delta_phi -= TURNING_SPEED;// * elapsed_seconds;
         }
 
         // Apply changes
@@ -180,8 +180,8 @@ impl Camera {
 
         if !self.delta_theta.is_zero() || !self.delta_phi.is_zero() {
             moved = true;
-            self.theta += self.delta_theta;
-            self.phi += self.delta_phi;
+            self.theta += self.delta_theta * elapsed_seconds;
+            self.phi += self.delta_phi * elapsed_seconds;
             let rotation_z = Quaternion::from_angle_z(self.theta);
             let rotation_x = Quaternion::from_angle_x(self.phi);
             self.transform.rot = rotation_z * rotation_x;

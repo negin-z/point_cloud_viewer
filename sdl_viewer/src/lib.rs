@@ -522,14 +522,13 @@ impl SdlViewer {
             }
 
             if let Some(j) = joystick.as_ref() {
-                let x = j.axis(0).unwrap() as f32 / 1000.;
-                let y = -j.axis(1).unwrap() as f32 / 1000.;
-                let z = -j.axis(2).unwrap() as f32 / 1000.;
-                let up = j.axis(3).unwrap() as f32 / 1000.;
+                let x = j.axis(0).unwrap() as f32 / 500.;
+                let y = -j.axis(1).unwrap() as f32 / 500.;
+                let z = -j.axis(2).unwrap() as f32 / 500.;
+                let up = j.axis(3).unwrap() as f32 / 500.;
                 // Combine tilting and turning on the knob.
-                let around = j.axis(4).unwrap() as f32 / 1000. - j.axis(5).unwrap() as f32 / 1000.;
+                let around = j.axis(4).unwrap() as f32 / 500. - j.axis(5).unwrap() as f32 / 500.;
                 camera.pan(x, y, z);
-                println!("Camera's up and around are: up {}, around {}", up, around);
                 camera.rotate(up, around);
             }
             let current_time = time::PreciseTime::now();
